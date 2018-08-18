@@ -3,7 +3,7 @@
 	"files.encoding": "windows1251",
 	"editor.fontWeight": "bold",
 	"editor.fontFamily": "Courier New",
-	"editor.lineNumbers": "off",
+	"editor.lineNumbers": "on",
 	"editor.insertSpaces": false,
 	"editor.detectIndentation": false,
 	"editor.cursorBlinking": "phase",

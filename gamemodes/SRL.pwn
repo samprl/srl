@@ -12,10 +12,16 @@
 #include <a_mysql>
 #include <regex>
 #include <a_players>
-#include <Vodka_SAMP>
 #include <crashdetect>
 //#include <Pawn.CMD>
 #pragma tabsize 0
+//=============================={Инклюды и прочие модули}=================
+#include "../modules/inc/Vodka_SAMP.inc"
+#include "../modules/inc/raknet.inc"
+#include "../modules/inc/perfomance.inc"
+#include "../modules/inc/rustext.inc"
+#define AD_SKIN_3
+#include "../modules/inc/dialogs.inc"
 //==============================[-RP]=====================================
 #define sqlhost     "185.233.115.16" // Адрес хоста
 #define sqluser     "admin_SAMP" // Имя пользователя
@@ -34,13 +40,6 @@
 //==============================[-RP]=====================================
 #pragma dynamic 4500
 //==============================[Define]========================================
-// PRESSED(keys)
-#define PRESSED(%0) \
-	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
-
-// RELEASED(keys)
-#define RELEASED(%0) \
-	(((newkeys & (%0)) != (%0)) && ((oldkeys & (%0)) == (%0)))
 #define INFO "{FFC800}•"WHITE" "
 #define GOOD "{00ff00}•"WHITE" "
 #define CSERVER                            		0xFF9900FF
@@ -711,6 +710,7 @@ new Mobile[MAX_PLAYERS];
 new Tel[MAX_PLAYERS];
 new CallCost[MAX_PLAYERS];
 new gCarLock[MAX_VEHICLES];
+new perfstat[MAX_PLAYERS];
 new kazarma[2];
 new noooc = 1,ghour = 0,gminute = 0,gsecond = 0;
 new realtime = 1,wtime = 15,callcost = 10,realchat = 1,timeshift = 0,shifthour,othtimer,pickuptimer,levelexp = 4,cchargetime = 60;
@@ -1345,7 +1345,8 @@ enum pInfo
 	pDjp,
 	pLRInectionsVaip,
 	pDayCase,
-	pDayCaseAmount
+	pDayCaseAmount,
+	pStage
 };
 new PlayerInfo[MAX_PLAYERS][pInfo];
 
@@ -1727,6 +1728,16 @@ public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger)
 	if(ispassenger && PlayerInCar[vehicleid] == 1 || (!ispassenger && PlayerInCar[vehicleid] == 1)) PlayerInCar[vehicleid] = 2;
 	SetVehicleParamsForPlayer(vehicleid, playerid, 0, gCarLock[vehicleid]);
 	PlayerPlaySound(playerid, 1145, 0.0, 0.0, 0.0);
+	//SendClientMessage(playerid, COLOR_WHITE,"{FFFFFF}[Информация]: Чтобы завести автомобиль - {ff0000}2");
+	if(GetPlayerVehicleID(playerid) == caridhouse[playerid])
+	{
+		if(PlayerInfo[playerid][pStage] > 0)
+		{
+			SetVehicleEngineState(caridhouse[playerid], 0);
+			SendClientMessage(playerid, COLOR_REDD,"{FFFFFF}[Информация]: На этом автомобиле установлен чип-тюнинг. Для включения/отключения - {ff0000}N");
+		}
+		//return true;
+	}
 	Refueling[playerid] = 0;
 	return 1;
 }
@@ -20581,7 +20592,9 @@ public OnGameModeInit()
 	Create3DTextLabel( "Для входа в хранилище", COLOR_YELLOW, 1923.3976,210.9468,730.3076, 18.0, 1);
 	Create3DTextLabel( "Банковские услуги\n{00FF00}нажмите ALT", COLOR_YELLOW, 1930.2313,201.7364,730.3076, 18.0, 1); // 1
 	Create3DTextLabel( "Банковские услуги\n{00FF00}нажмите ALT", COLOR_YELLOW, 1934.5313,201.7379,730.3076, 18.0, 1); //2
-	Create3DTextLabel("{ffd700}В /donate есть бесплатный кейс\nОбязательно введите {ff0000}/shop\n{ffd700}Наш сайт: samp-rl.info",0xFFF700FF,1234.7954,-1823.8499,14.5910,80.0,0,1);//Vagos
+	Create3DTextLabel("{ffd700}В /donate есть бесплатный кейс\nОбязательно введите {ff0000}/shop\n{ffd700}Наш сайт: samp-rl.info",0xFFF700FF,1234.7954,-1823.8499,14.5910,50.0,0,1);//Vagos
+	Create3DTextLabel("{ffd700}Чип-тюнинг автомобиля\nВведите: {ff0000}/ptune",0xFFF700FF,1399.8853,-1892.6222,13.5589,20.0,0,1);//Vagos
+	Create3DTextLabel("{ffd700}Чип-тюнинг автомобиля\nВведите: {ff0000}/ptune",0xFFF700FF,1386.4039,-1892.4700,13.5589,20.0,0,1);//Vagos
 	Create3DTextLabel("/fmask",0x80FF00FF,341.5970,347.1272,967.6160,50.0,0,1);//FBI
 	Create3DTextLabel( "Чтобы выйти через черный выход\n{FF0000}нажмите ALT", COLOR_YELLOW,2129.9822,1626.2155,993.6882,18.0, 3);
 	Create3DTextLabel( "Для меню покупки вещей\n{FF0000}введите /buy", COLOR_YELLOW,-25.9227,-185.1353,1003.5469,18.0, 0);
@@ -20871,9 +20884,8 @@ public OnGameModeInit()
 stock CreateMySQLConnection(host[], user[], db[], pass[])
 {
 	connects = mysql_connect(host, user, db, pass);
-	mysql_function_query(connects,"SET NAMES utf8",true,"","");
-	mysql_function_query(connects,"set character_set_results=\'utf8\'",true,"","");
-	mysql_function_query(connects,"set collation_connection=\'utf8_general_ci\'",true,"","");
+	mysql_function_query(connects,"SET NAMES cp1251;",true,"","");
+	mysql_function_query(connects,"SET SESSION character_set_server='utf8';",true,"","");
 	printf("===============================================================================");
 	printf("                        подключение успешно установлено                        ");
 	printf("===============================================================================");
@@ -21335,6 +21347,14 @@ public OnPlayerCommandText(playerid, cmdtext[])
 	else if(strcmp(cmd, "/shop", true) == 0)
 	{
 		Donateshop(playerid);
+	}
+	else if(strcmp(cmd, "/ptune", true) == 0)
+	{
+			if(IsPlayerInRangeOfPoint(playerid,25.0,1399.8853,-1892.6222,13.5589))
+			{
+				ShowPlayerAltDialog(playerid, 1, AD_STYLE_LIST, "Stage", "Stage 1             500000$\nStage 2             1500000$\nStage 3             2500000$\nStage 4             15000000$\nStage 5             15 рублей\nОтключить", "ОК", "Назад");
+			}
+			return 1;
 	}
 	else if(strcmp(cmd, "/giverubshop", true) == 0)
 	{
@@ -22131,6 +22151,11 @@ public OnPlayerCommandText(playerid, cmdtext[])
 		}
 		else SendClientMessage(playerid, COLOR_WHITE, "Вы не авторизированы.");
 		return true;
+	}
+	else if(strcmp(cmd, "/wdialog", true) == 0)
+	{
+		ShowPlayerAltDialog(playerid, 0, AD_STYLE_LIST, "Weapons", "AK47\nM4\nSniper Rifle", "Ok", "Cancel");
+		return 1;
 	}
 	else if(strcmp(cmd, "/admins", true) == 0)
 	{
@@ -32782,6 +32807,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
 			PlayerPlaySound(playerid, 1052, 0.0, 0.0, 0.0);
 			LinkVehicleToInterior(caridhouse[playerid], 1);
 			SetVehicleVirtualWorld(caridhouse[playerid], house+50);
+			SetVehicleEngineState(caridhouse[playerid], 0);
 			AddVehicleComponent (caridhouse[playerid], PlayerInfo[playerid][pKolesocar]);
 			AddVehicleComponent (caridhouse[playerid], PlayerInfo[playerid][pNitro]);
 			AddVehicleComponent (caridhouse[playerid], PlayerInfo[playerid][pGidra]);
@@ -35122,6 +35148,30 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 		}
 		return true;
 	}
+	if((newkeys & KEY_NO))
+	{
+		if(GetPlayerVehicleID(playerid) == 0) return 0;
+		if(GetPlayerVehicleID(playerid) != caridhouse[playerid]) return SendClientMessage(playerid,COLOR_GREY,"Вы не в своей машине.");
+		new perfstatus = perfstat[playerid];
+		if(PlayerInfo[playerid][pStage] > 0)
+		{
+			switch (perfstatus)
+			{
+				case 0:
+				{
+					SetVehicleEngineState(caridhouse[playerid], PlayerInfo[playerid][pStage]);
+					SendClientMessage(playerid,COLOR_GREY,"{FFFFFF}Вы включили чип.");
+					perfstat[playerid] = 1;
+				}
+				case 1:
+				{
+					SetVehicleEngineState(caridhouse[playerid], PlayerInfo[playerid][pStage]);
+					SendClientMessage(playerid,COLOR_GREY,"{FFFFFF}Вы выключили чип.");
+					perfstat[playerid] = 0;
+				}
+			}
+		}
+	}
 	if((newkeys & KEY_YES))
 	{
 		new carid;
@@ -37014,7 +37064,7 @@ stock OnPlayerUpdateRL(playerid)
 		PlayerInfo[playerid][pVcol1],PlayerInfo[playerid][pVcol2],
 		PlayerInfo[playerid][pBamper1],PlayerInfo[playerid][pBamper2]);
 
-		mysql_format(connects,str,sizeof(str),"%s `pNitro` = '%d',`pGidra` = '%d',`pAvtomas` = '%d',`pMestoJail` = '%d',`pWanted` = '%d',`pHousecash` = '%d',`pTut` = '%d',`pNumbercar` = '%s',`pIpReg` = '%s',`pRub` = '%d', `pTenPayDay` = '%d', `pDVeh` = '%d', `pDSkin` = '%d', `pDjp` = '%d', `pLRInectionsVaip` = '%d', `pDayCase` = '%d', `pDayCaseAmount` = '%d' WHERE `Name` = '%s'",str,
+		mysql_format(connects,str,sizeof(str),"%s `pNitro` = '%d',`pGidra` = '%d',`pAvtomas` = '%d',`pMestoJail` = '%d',`pWanted` = '%d',`pHousecash` = '%d',`pTut` = '%d',`pNumbercar` = '%s',`pIpReg` = '%s',`pRub` = '%d', `pTenPayDay` = '%d', `pDVeh` = '%d', `pDSkin` = '%d', `pDjp` = '%d', `pLRInectionsVaip` = '%d', `pDayCase` = '%d', `pDayCaseAmount` = '%d', `pStage` = '%d' WHERE `Name` = '%s'",str,
 		PlayerInfo[playerid][pNitro],PlayerInfo[playerid][pGidra],
 		PlayerInfo[playerid][pAvtomas],PlayerInfo[playerid][pMestoJail],
 		PlayerInfo[playerid][pWanted],
@@ -37023,7 +37073,8 @@ stock OnPlayerUpdateRL(playerid)
 		PlayerInfo[playerid][pRub],PlayerInfo[playerid][pTenPayDay],
 		PlayerInfo[playerid][pDVeh],PlayerInfo[playerid][pDSkin],
 		PlayerInfo[playerid][pDjp], PlayerInfo[playerid][pLRInectionsVaip],
-		PlayerInfo[playerid][pDayCase], PlayerInfo[playerid][pDayCaseAmount], sendername);
+		PlayerInfo[playerid][pDayCase], PlayerInfo[playerid][pDayCaseAmount],
+		PlayerInfo[playerid][pStage], sendername);
 		mysql_function_query(connects, str, false, "", "");
 		printf("Аккаунт %s был успешно сохранён.(%d)",sendername,strlen(str));
 	}
@@ -37267,6 +37318,7 @@ publics: LoginCallback(playerid, password[])
 	cache_get_field_content(0, "pLRInectionsVaip", maximum), 		PlayerInfo[playerid][pLRInectionsVaip] = strval(maximum);
 	cache_get_field_content(0, "pDayCase", maximum), 		PlayerInfo[playerid][pDayCase] = strval(maximum);
 	cache_get_field_content(0, "pDayCaseAmount", maximum), 		PlayerInfo[playerid][pDayCaseAmount] = strval(maximum);
+	cache_get_field_content(0, "pStage", maximum), 		PlayerInfo[playerid][pStage] = strval(maximum);
 	//TogglePlayerSpectating(playerid, 0);
 	ResetPlayerMoney(playerid);
 	SetPlayerSkills(playerid);
@@ -37374,6 +37426,10 @@ publics: LoginCallback(playerid, password[])
 	{
 		caridhouse[playerid] = AddStaticVehicleEx(PlayerInfo[playerid][pCar], 1383.6407,-20.8323,1000.5817,269.2685, PlayerInfo[playerid][pVcol1], PlayerInfo[playerid][pVcol2],7200);
 		LockCar(caridhouse[playerid]);
+		if(PlayerInfo[playerid][pStage] > 0)
+		{
+			SetVehicleEngineState(caridhouse[playerid], 0);
+		}
 		Fuell[caridhouse[playerid]] = PlayerInfo[playerid][pFuelcar]+20;
 		SetVehicleNumberPlate(caridhouse[playerid], PlayerInfo[playerid][pNumbercar]);
 		AddVehicleComponent (caridhouse[playerid], PlayerInfo[playerid][pKolesocar]);
@@ -38522,12 +38578,89 @@ public OnCheatDetected(playerid, ip_address[], type, code)
     }
     return 1;
 }
-/*stock StopSpectate(playerid)
+public OnAltDialogResponse(playerid, dialogid, response, listitem)
 {
-    SetTimerEx("SpectOff",100,false,"i",playerid);
-    TogglePlayerSpectating(playerid, false);
-    
-    return true;
+	if(dialogid == 1)
+	{
+		if(response == 1)
+		{
+			switch(listitem)
+			{
+				case 0:
+				{
+					if(PlayerInfo[playerid][pCash] < 500000) return SCM(playerid, -1, ""#NET"У Вас недостаточно денег!");
+					if(PlayerInfo[playerid][pStage] == 1)
+					{
+						SendClientMessage(playerid, -1, ""#INFO"У вас уже есть - "SERVER"Stage 1!");
+						return 1;
+					}
+					SendClientMessage(playerid, -1, ""#INFO"Спасибо! Вы приобрели - "SERVER"Stage 1! "#INFO"Введите /fixcar.");
+					PlayerInfo[playerid][pCash] -= 500000;
+					PlayerInfo[playerid][pStage] = 1;
+					return 1;
+				}
+				case 1:
+				{
+					if(PlayerInfo[playerid][pCash] < 1500000) return SCM(playerid, -1, ""#NET"У Вас недостаточно денег!");
+					if(PlayerInfo[playerid][pStage] == 2)
+					{
+						SendClientMessage(playerid, -1, ""#INFO"У вас уже есть - "SERVER"Stage 2!");
+						return 1;
+					}
+					SendClientMessage(playerid, -1, ""#INFO"Спасибо! Вы приобрели - "SERVER"Stage 2! "#INFO"Введите /fixcar.");
+					PlayerInfo[playerid][pCash] -= 1500000;
+					PlayerInfo[playerid][pStage] = 2;
+					return 1; 
+				}
+				case 2:
+				{
+					if(PlayerInfo[playerid][pCash] < 2500000) return SCM(playerid, -1, ""#NET"У Вас недостаточно денег!");
+					if(PlayerInfo[playerid][pStage] == 3)
+					{
+						SendClientMessage(playerid, -1, ""#INFO"У вас уже есть - "SERVER"Stage 3!");
+						return 1;
+					}
+					SendClientMessage(playerid, -1, ""#INFO"Спасибо! Вы приобрели - "SERVER"Stage 3! "#INFO"Введите /fixcar.");
+					PlayerInfo[playerid][pCash] -= 2500000;
+					PlayerInfo[playerid][pStage] = 3;
+					return 1;  
+				}
+				case 3:
+				{
+					if(PlayerInfo[playerid][pCash] < 15000000) return SCM(playerid, -1, ""#NET"У Вас недостаточно денег!");
+					if(PlayerInfo[playerid][pStage] == 4)
+					{
+						SendClientMessage(playerid, -1, ""#INFO"У вас уже есть - "SERVER"Stage 4!");
+						return 1;
+					}
+					SendClientMessage(playerid, -1, ""#INFO"Спасибо! Вы приобрели - "SERVER"Stage 4! "#INFO"Введите /fixcar.");
+					PlayerInfo[playerid][pCash] -= 15000000;
+					PlayerInfo[playerid][pStage] = 4;
+					return 1;  
+				}
+				case 4:
+				{
+					if(PlayerInfo[playerid][pRub] < 15) return SCM(playerid, -1, ""#NET"У Вас недостаточно рублей!");
+					if(PlayerInfo[playerid][pStage] == 5)
+					{
+						SendClientMessage(playerid, -1, ""#INFO"У вас уже есть - "SERVER"Stage 5!");
+						return 1;
+					}
+					SendClientMessage(playerid, -1, ""#INFO"Спасибо! Вы приобрели - "SERVER"Stage 5! "#INFO"Введите /fixcar.");
+					PlayerInfo[playerid][pCash] -= 15;
+					PlayerInfo[playerid][pStage] = 5;
+					return 1; 
+				}
+				case 5:
+				{
+					SendClientMessage(playerid, -1, ""#INFO"Вы убрали чип-тюнинг с автомобиля.");
+					PlayerInfo[playerid][pStage] = 0;
+					return 1; 
+				}
+			}
+			return 1;
+		}
+	}
+	return 0;
 }
-publics: SpectOff(playerid) return SpawnPlayer(playerid);*/
 
